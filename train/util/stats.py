@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 
 def get_top_k(k, decoded, compare, mask):
@@ -57,6 +58,8 @@ class StatsTracker(object):
         self.running_top1 = 0
         self.running_top5 = 0
 
+        self.parity_op = []
+
     def averages(self):
         """
         Returns average loss, reconstruction-accuracy, and overall-accuracy
@@ -114,3 +117,9 @@ class StatsTracker(object):
         """
         self.loss += loss
         self.num_loss_attempts += 1
+
+    def add_outputs(self, mb_outputs):
+        self.parity_op.append(mb_outputs)
+
+    def parity_map(self):
+        return np.array(self.parity_op)

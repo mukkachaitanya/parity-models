@@ -108,6 +108,11 @@ class ParityModelTrainer(object):
         outfile_fmt = os.path.join(self.save_dir, label + "_{}.txt")
         util.util.write_vals_dict(outfile_fmt, epoch_acc_map)
 
+        if label != "train" :
+            outfile_fmt_np = os.path.join("save/", "{}_parity_outputs.npy")
+            parity_map = stats.parity_map()
+            util.util.write_np_file(outfile_fmt_np.format(label), parity_map)
+
         top_recon = epoch_acc_map["reconstruction_top1"]
         top_overall = epoch_acc_map["overall_top1"]
         return epoch_loss, top_recon, top_overall
@@ -178,6 +183,8 @@ class ParityModelTrainer(object):
 
         # Perform parity model computation
         parity_output = self.parity_model(parity)
+
+        stats.add_outputs(parity_output.cpu().detach().numpy())
 
         # Some base models don't return output in the format that we'd like.
         # If this is the case, reshape the output accordingly.
@@ -326,6 +333,7 @@ class ParityModelTrainer(object):
         if self.only_test:
             if prev_state is None:
                 raise Exception("only_test cannot be set unless --continue_from_file is set")
+            self.cur_epoch = 0  # restart when test only
             self.final_epoch = 1
 
         # Directory to save stats and checkpoints to

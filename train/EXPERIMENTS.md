@@ -89,7 +89,7 @@ The files in this directory enable one to continue training from a checkpoint.
 Using the example above, we can continue training from the last epoch of our
 previous run with:
 ```bash
-python3 train_config.py save --continue_from_file save/mnist/base-mlp/k2/mse/add/sub/current.pth
+python3 train_config.py config/example.json save --continue_from_file save/mnist/base-mlp/k2/mse/add/sub/current.pth
 ```
 
 ### Using other datasets and base models

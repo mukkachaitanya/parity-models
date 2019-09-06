@@ -3,6 +3,7 @@ import os
 from shutil import copyfile
 import torch
 import torch.nn as nn
+import numpy as np
 
 
 def construct(obj_map, extra_kwargs={}):
@@ -120,3 +121,7 @@ def write_vals_dict(outfile, val_dict):
 
     for k, v in val_dict.items():
         write_value(v, outfile.format(k))
+
+def write_np_file(outfile, np_obj):
+    np.save(outfile, np_obj, allow_pickle=True)
+        
