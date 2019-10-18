@@ -48,7 +48,7 @@ class ParityModelTrainer(object):
             # Perform epoch on test dataset
             _, _, _ = self.__epoch(self.test_dataloader,
                                    do_step=False,
-                                   do_print=False)
+                                   do_print=True)
 
             if not self.only_test:
                 self.__save_current_state(val_recon_acc)
@@ -108,13 +108,15 @@ class ParityModelTrainer(object):
         outfile_fmt = os.path.join(self.save_dir, label + "_{}.txt")
         util.util.write_vals_dict(outfile_fmt, epoch_acc_map)
 
-        if label != "train" :
-            outfile_fmt_np = os.path.join("save/", "{}_parity_outputs.npy")
-            parity_map = stats.parity_map()
-            util.util.write_np_file(outfile_fmt_np.format(label), parity_map)
-
         top_recon = epoch_acc_map["reconstruction_top1"]
         top_overall = epoch_acc_map["overall_top1"]
+
+        if label != "train" :
+            if top_recon > self.best_recon_accuracy : 
+                outfile_file = os.path.join(self.save_dir, label + "_best_comp_prof_parity_outputs.npy")
+                parity_map = stats.parity_map()
+                util.util.write_np_file(outfile_file, parity_map)
+
         return epoch_loss, top_recon, top_overall
 
     def __gen_masks(self):
@@ -182,9 +184,7 @@ class ParityModelTrainer(object):
         parity = self.enc_model(mb_data)
 
         # Perform parity model computation
-        parity_output = self.parity_model(parity)
-
-        stats.add_outputs(parity_output.cpu().detach().numpy())
+        parity_output = self.parity_model(parity)        
 
         # Some base models don't return output in the format that we'd like.
         # If this is the case, reshape the output accordingly.
@@ -206,6 +206,7 @@ class ParityModelTrainer(object):
 
         in_decode = torch.cat((mb_labels, new_parity_output), dim=1)
 
+        stats.add_outputs(in_decode.cpu().detach().numpy())
         # Create masks to be used for this minibatch
         _, num_in, dim = in_decode.size()
         mb_emask = self.erase_mask.repeat(batch_size, 1, 1)
