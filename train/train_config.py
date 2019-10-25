@@ -57,6 +57,12 @@ def get_encoder(encoder_type, ec_k):
         }
 
         return conf
+    elif encoder_type == "linear":
+        conf = {
+            "class": "coders.linear_coder.LinearEncoder",
+        }
+
+        return conf
     else:
         raise Exception("Invalid encoder type: {}".format(encoder_type))
 
@@ -65,6 +71,10 @@ def get_decoder(decoder_type):
     if decoder_type == "sub":
         return {
             "class": "coders.summation.SubtractionDecoder"
+        }
+    elif decoder_type == "linear":
+        return {
+            "class": "coders.linear_coder.LinearDecoder"
         }
     else:
         raise Exception("Invalid decoder type: {}".format(decoder_type))
@@ -254,37 +264,42 @@ if __name__ == "__main__":
             for ec_k in cfg["k_vals"]:
                 for loss_type in cfg["losses"]:
                     for enc, dec in cfg["enc_dec_types"]:
-                        print(dataset, base_type,
-                              ec_k, loss_type, enc, dec)
-                        loss = get_loss(loss_type)
-                        encoder = get_encoder(enc, ec_k)
-                        decoder = get_decoder(dec)
-                        model_file, base, input_size, ds = get_base_model(
-                            dataset, base_type)
-                        parity_model, pm_input_size = get_parity_model(
-                            dataset, base_type)
+                        if enc != "linear":
+                            cfg["coefficients"] = [None]
+                        for coefficients in cfg["coefficients"]:
+                            print(dataset, base_type,
+                                ec_k, loss_type, enc, dec, coefficients)
+                            loss = get_loss(loss_type)
+                            encoder = get_encoder(enc, ec_k)
+                            decoder = get_decoder(dec)
+                            model_file, base, input_size, ds = get_base_model(
+                                dataset, base_type)
+                            parity_model, pm_input_size = get_parity_model(
+                                dataset, base_type)
 
-                        suffix_dir = os.path.join(dataset,
-                                                  "{}".format(
-                                                      base_type),
-                                                  "k{}".format(ec_k),
-                                                  "{}".format(loss_type),
-                                                  "{}".format(enc),
-                                                  "{}".format(dec))
+                            suffix_dir = os.path.join(dataset,
+                                                    "{}".format(
+                                                        base_type),
+                                                    "k{}".format(ec_k),
+                                                    "{}".format(loss_type),
+                                                    "{}".format(enc),
+                                                    "{}".format(dec),
+                                                    "{}".format('_'.join(map(str, coefficients) if coefficients else "None")))
 
-                        save_dir = os.path.join(
-                            args.overall_save_dir, suffix_dir)
-                        config_map = get_config(num_epoch, ec_k, loss, encoder,
-                                                decoder, model_file, base,
-                                                ds, save_dir, input_size,
-                                                parity_model, args.only_test)
+                            save_dir = os.path.join(
+                                args.overall_save_dir, suffix_dir)
+                            config_map = get_config(num_epoch, ec_k, loss, encoder,
+                                                    decoder, model_file, base,
+                                                    ds, save_dir, input_size,
+                                                    parity_model, args.only_test)
+                            config_map["coefficients"] = coefficients
 
-                        if args.continue_from_file:
-                            config_map["continue_from_file"] = args.continue_from_file
+                            if args.continue_from_file:
+                                config_map["continue_from_file"] = args.continue_from_file
 
-                        try:
-                            trainer = ParityModelTrainer(config_map,
-                                                         checkpoint_cycle=args.checkpoint_cycle)
-                            trainer.train()
-                        except KeyboardInterrupt:
-                            print("INTERRUPTED")
+                            try:
+                                trainer = ParityModelTrainer(config_map,
+                                                            checkpoint_cycle=args.checkpoint_cycle)
+                                trainer.train()
+                            except KeyboardInterrupt:
+                                print("INTERRUPTED")

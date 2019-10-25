@@ -102,7 +102,7 @@ class ParityModelTrainer(object):
                 rloss, rtop1, rtop5 = stats.running_averages()
                 data_loader.set_description(
                     "Epoch {}. {}. Top-1={:.4f}, Top-5={:.4f}, Loss={:.4f}".format(
-                    self.cur_epoch, label, rtop1, rtop5, rloss))
+                        self.cur_epoch, label, rtop1, rtop5, rloss))
 
         epoch_loss, epoch_acc_map = stats.averages()
         outfile_fmt = os.path.join(self.save_dir, label + "_{}.txt")
@@ -111,9 +111,10 @@ class ParityModelTrainer(object):
         top_recon = epoch_acc_map["reconstruction_top1"]
         top_overall = epoch_acc_map["overall_top1"]
 
-        if label != "train" :
-            if top_recon > self.best_recon_accuracy : 
-                outfile_file = os.path.join(self.save_dir, label + "_best_comp_prof_parity_outputs.npy")
+        if label != "train":
+            if top_recon > self.best_recon_accuracy:
+                outfile_file = os.path.join(
+                    self.save_dir, label + "_best_comp_prof_parity_outputs.npy")
                 parity_map = stats.parity_map()
                 util.util.write_np_file(outfile_file, parity_map)
 
@@ -184,7 +185,7 @@ class ParityModelTrainer(object):
         parity = self.enc_model(mb_data)
 
         # Perform parity model computation
-        parity_output = self.parity_model(parity)        
+        parity_output = self.parity_model(parity)
 
         # Some base models don't return output in the format that we'd like.
         # If this is the case, reshape the output accordingly.
@@ -263,7 +264,7 @@ class ParityModelTrainer(object):
 
         self.ec_k = config_map["ec_k"]
         self.ec_r = config_map["ec_r"]
-        if  self.ec_r != 1:
+        if self.ec_r != 1:
             raise Exception("Currently support only `ec_r` = 1")
         self.batch_size = config_map["batch_size"]
 
@@ -292,15 +293,22 @@ class ParityModelTrainer(object):
 
         encoder_in_dim = self.val_dataloader.dataset.encoder_in_dim()
         decoder_in_dim = self.val_dataloader.dataset.decoder_in_dim()
-        self.enc_model = construct(config_map["Encoder"],
-                                   {"ec_k": self.ec_k,
-                                    "ec_r": self.ec_r,
-                                    "in_dim": encoder_in_dim})
 
-        self.dec_model = construct(config_map["Decoder"],
-                                   {"ec_k": self.ec_k,
-                                    "ec_r": self.ec_r,
-                                    "in_dim": decoder_in_dim})
+        enc_param = {"ec_k": self.ec_k,
+                     "ec_r": self.ec_r,
+                     "in_dim": encoder_in_dim,
+                     }
+        dec_param = {"ec_k": self.ec_k,
+                     "ec_r": self.ec_r,
+                     "in_dim": decoder_in_dim,
+                     }
+        if config_map["coefficients"] is not None:
+            enc_param["coefficients"] = config_map["coefficients"]
+            dec_param["coefficients"] = config_map["coefficients"]
+
+        self.enc_model = construct(config_map["Encoder"], enc_param)
+
+        self.dec_model = construct(config_map["Decoder"], dec_param)
 
         # Move our encoder, decoder, and loss functions to GPU, if available
         self.enc_model = try_cuda(self.enc_model)
@@ -333,7 +341,8 @@ class ParityModelTrainer(object):
         self.only_test = config_map["only_test"]
         if self.only_test:
             if prev_state is None:
-                raise Exception("only_test cannot be set unless --continue_from_file is set")
+                raise Exception(
+                    "only_test cannot be set unless --continue_from_file is set")
             self.cur_epoch = 0  # restart when test only
             self.final_epoch = 1
 
